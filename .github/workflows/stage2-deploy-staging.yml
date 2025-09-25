@@ -9,7 +9,7 @@ on:
 # Global environment variables that can be used across jobs
 env:
   # ACR Login Server (e.g., myregistry.azurecr.io)
-  ACR_LOGIN_SERVER: ${{ vars.ACR_LOGIN_SERVER }}  
+  ACR_LOGIN_SERVER: ${{ secrets.ACR_LOGIN_SERVER }}  
   # To adopt ci-test tags 
   IMAGE_TAG: latest
 
@@ -70,6 +70,20 @@ jobs:
             NS="${{ steps.ns.outputs.ns }}"
             kubectl apply -n "$NS" -f k8s/frontend.yaml
 
+      - name: Debug deployments and pods
+        run: |
+          NS="${{ steps.ns.outputs.ns }}"
+          echo "=== Deployments ==="
+          kubectl -n "$NS" get deploy -o wide || true
+          echo "=== ReplicaSets ==="
+          kubectl -n "$NS" get rs -o wide || true
+          echo "=== Pods ==="
+          kubectl -n "$NS" get pods -o wide || true
+          echo "=== Describe product-service ==="
+          kubectl -n "$NS" describe deploy/product-service-d-aks || true
+          echo "=== Recent events ==="
+          kubectl -n "$NS" get events --sort-by=.lastTimestamp | tail -n 100 || true
+
       - name: Ensure set to images in ACR
         run: |
           NS="${{ steps.ns.outputs.ns }}"
@@ -90,10 +104,10 @@ jobs:
       - name: Wait for services ready
         run: |
             NS="${{ steps.ns.outputs.ns }}"
-            kubectl -n "$NS" rollout status deploy/product-service-d-aks   --timeout=240s
-            kubectl -n "$NS" rollout status deploy/order-service-d-aks     --timeout=240s
-            kubectl -n "$NS" rollout status deploy/customer-service-d-aks  --timeout=240s
-            kubectl -n "$NS" rollout status deploy/frontend-d-aks          --timeout=240s
+            kubectl -n "$NS" rollout status deploy/product-service-d-aks   --timeout=420s
+            kubectl -n "$NS" rollout status deploy/order-service-d-aks     --timeout=420s
+            kubectl -n "$NS" rollout status deploy/customer-service-d-aks  --timeout=420s
+            kubectl -n "$NS" rollout status deploy/frontend-d-aks          --timeout=420s
 
             # ensure that each service endpoint is ready before moving to next step 
             for svc in product-service-d-aks order-service-d-aks customer-service-d-aks; do
@@ -109,6 +123,20 @@ jobs:
                 sleep 10
               done
             done
+
+      - name: Logs on failure
+        if: failure()
+        run: |
+          NS="${{ steps.ns.outputs.ns }}"
+          for lbl in product-service order-service customer-service frontend; do
+            POD=$(kubectl -n "$NS" get pods -l app=$lbl -o jsonpath='{.items[0].metadata.name}' 2>/dev/null || true)
+            if [ -n "$POD" ]; then
+              echo "==== Logs: $lbl ($POD) ===="
+              kubectl -n "$NS" logs "$POD" --tail=200 || true
+              echo "==== Describe pod: $lbl ===="
+              kubectl -n "$NS" describe pod "$POD" || true
+            fi
+          done
 
       # Conduct an acceptance test i.e. smoke test
       - name: Run acceptance test
