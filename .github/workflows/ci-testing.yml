@@ -15,7 +15,7 @@ env:
 
 jobs:
   # Job 1: Test all services 
-  test_and_lint_all_services:
+  all_services:
     runs-on: ubuntu-latest
 
     services:
@@ -152,7 +152,7 @@ jobs:
   # Job 2: Build and Push Docker Images (runs only if tests pass)
   build_and_push_images:
     runs-on: ubuntu-latest
-    needs: test_and_lint_all_services
+    needs: all_services
 
     steps:
     - name: Checkout repository
