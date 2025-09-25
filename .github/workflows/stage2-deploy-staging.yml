@@ -74,30 +74,29 @@ jobs:
         run: |
           NS="${{ steps.ns.outputs.ns }}"
           ACR="${{ env.ACR_LOGIN_SERVER }}"
-          kubectl -n "$NS" set image deploy/product-service-w10d2  product-service-container=$ACR/product_service:latest
-          kubectl -n "$NS" set image deploy/order-service-w10d2    order-service-container=$ACR/order_service:latest
-          kubectl -n "$NS" set image deploy/customer-service-w10d2 customer-service-container=$ACR/customer_service:latest
-          kubectl -n "$NS" set image deploy/frontend               frontend-container=$ACR/frontend:latest
-
+          kubectl -n "$NS" set image deploy/product-service-d-aks  product-service-container=$ACR/product_service:latest
+          kubectl -n "$NS" set image deploy/order-service-d-aks    order-service-container=$ACR/order_service:latest
+          kubectl -n "$NS" set image deploy/customer-service-d-aks customer-service-container=$ACR/customer_service:latest
+          kubectl -n "$NS" set image deploy/frontend-d-aks         frontend-container=$ACR/frontend:latest
       # Wait for the DBs, RabbiqMQ and services to be ready with a timeout 
       - name: Wait for DBs & RabbitMQ ready
         run: |
             NS="${{ steps.ns.outputs.ns }}"
-            kubectl -n "$NS" rollout status deploy/product-db-deployment-w10d2   --timeout=180s
-            kubectl -n "$NS" rollout status deploy/order-db-deployment-w10d2     --timeout=180s
-            kubectl -n "$NS" rollout status deploy/customer-db-deployment-w10d2  --timeout=180s
-            kubectl -n "$NS" rollout status deploy/rabbitmq-deployment-w10d2     --timeout=180s
+            kubectl -n "$NS" rollout status deploy/product-db-deployment-d-aks   --timeout=180s
+            kubectl -n "$NS" rollout status deploy/order-db-deployment-d-aks     --timeout=180s
+            kubectl -n "$NS" rollout status deploy/customer-db-deployment-d-aks  --timeout=180s
+            kubectl -n "$NS" rollout status deploy/rabbitmq-deployment-d-aks     --timeout=180s
 
       - name: Wait for services ready
         run: |
             NS="${{ steps.ns.outputs.ns }}"
-            kubectl -n "$NS" rollout status deploy/product-service-w10d2   --timeout=240s
-            kubectl -n "$NS" rollout status deploy/order-service-w10d2     --timeout=240s
-            kubectl -n "$NS" rollout status deploy/customer-service-w10d2  --timeout=240s
-            kubectl -n "$NS" rollout status deploy/frontend                --timeout=240s
+            kubectl -n "$NS" rollout status deploy/product-service-d-aks   --timeout=240s
+            kubectl -n "$NS" rollout status deploy/order-service-d-aks     --timeout=240s
+            kubectl -n "$NS" rollout status deploy/customer-service-d-aks  --timeout=240s
+            kubectl -n "$NS" rollout status deploy/frontend-d-aks          --timeout=240s
 
             # ensure that each service endpoint is ready before moving to next step 
-            for svc in product-service-w10d2 order-service-w10d2 customer-service-w10d2; do
+            for svc in product-service-d-aks order-service-d-aks customer-service-d-aks; do
               echo "Waiting for $svc endpoints..."
               for i in {1..12}; do
                 ready=$(kubectl -n "$NS" get endpoints $svc \
@@ -130,9 +129,9 @@ jobs:
                 }
 
                 # Basic health checks
-                check_200 http://product-service-w10d2:8000/health   "product-service /health"
-                check_200 http://order-service-w10d2:8001/health     "order-service /health"
-                check_200 http://customer-service-w10d2:8002/health  "customer-service /health"
+                check_200 http://product-service-d-aks:8000/health   "product-service /health"
+                check_200 http://order-service-d-aks:8001/health     "order-service /health"
+                check_200 http://customer-service-d-aks:8002/health  "customer-service /health"
               '
 
       # Destroy temporary namespace
