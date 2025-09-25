@@ -1,0 +1,14 @@
+{
+  "name": "ecommerce-frontend",
+  "version": "1.0.0",
+  "description": "Static frontend for e-commerce microservices application",
+  "main": "main.js",
+  "scripts": {
+    "lint": "echo 'No linting configured for static HTML/JS frontend'"
+  },
+  "keywords": ["frontend", "ecommerce", "microservices"],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {},
+  "dependencies": {}
+}
